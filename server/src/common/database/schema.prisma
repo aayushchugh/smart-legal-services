@@ -7,6 +7,30 @@ generator client {
   provider = "prisma-client-js"
 }
 
+enum UserRole {
+  user
+  admin
+  serviceProvider
+}
+
 model User {
-    id Int @id() @map("_id")
+  id   String @id @default(auto()) @map("_id") @db.ObjectId
+  name String
+  email String @unique()
+  password String
+  phone Int @unique()
+  role UserRole
+  address Address
+  isVerified Boolean
+  verificationCode Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+type Address {
+  city String
+  state String
+  pinCode Int
+  addressLine1 String
+  addressLine2 String?
 }
