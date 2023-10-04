@@ -1,15 +1,17 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { AuthSignupBodyDTO, AuthSignupQueryDTO } from './auth.dto';
-import { Prisma, UserRole } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import { VerificationCodeUtil } from 'src/modules/auth/utilities/verification-code.util';
 import { HashingUtil } from './utilities/hashing.util';
 import prisma from 'src/common/database/prisma';
+import { AuthEmailTemplateUtil } from './utilities/authEmailTemplate.util';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly verificationCodeUtil: VerificationCodeUtil,
     private readonly hashingUtility: HashingUtil,
+    private readonly authEmailTemplateUtil: AuthEmailTemplateUtil,
   ) {}
 
   async authService(body: AuthSignupBodyDTO, query: AuthSignupQueryDTO) {
@@ -19,13 +21,12 @@ export class AuthService {
         body.password,
       );
 
+      // generate verification code
       const verificationCode =
         this.verificationCodeUtil.generateVerificationCode();
-      // send code to email
 
       // create user in database
-
-      await prisma.user.create({
+      const createdUser = await prisma.user.create({
         data: {
           name: body.name,
           email: body.email,
@@ -45,6 +46,9 @@ export class AuthService {
           },
         },
       });
+
+      // send code to email
+      await this.authEmailTemplateUtil.sendVerificationEmail(createdUser);
 
       return {
         statusCode: 201,
