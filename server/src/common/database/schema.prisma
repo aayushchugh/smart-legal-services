@@ -21,10 +21,48 @@ model User {
   phone Int @unique()
   role UserRole
   address Address
-  isVerified Boolean
+  isVerified Boolean @default(false)
   verificationCode Int
+  clientDetails UserClientDetails?
+  serviceProviderDetails UserServiceProviderDetails?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+}
+
+type UserClientDetails {
+  issues String[] @default([])
+  bpl UserClientDetailsBpl
+}
+
+type UserClientDetailsBpl {
+  isBPL Boolean? @default(false)
+  isBPLVerified Boolean? @default(false)
+  BPLProof String? // TODO: make this a attachment
+}
+
+type UserServiceProviderDetails {
+  bids String[] // TODO: make this attachment
+  qualifications UserServiceProviderDetailsQualifications[]
+  licence String // TODO: make this attachment
+  isBarAssociationMember Boolean? @default(false)
+  experience Int
+  assignedIssues String[] // TODO: make this issue
+  overAllRating UserServiceProviderDetailsOverAllRating
+  ratings String[] // TODO: make this rating
+  services String[] // TODO: make this services
+}
+
+type UserServiceProviderDetailsQualifications {
+  title String
+  proof String[] // TODO: make this attachment
+}
+
+type UserServiceProviderDetailsOverAllRating {
+  communication Int
+  behaviour Int
+  efficiency Int
+  worth Int
+  average Int
 }
 
 type Address {
