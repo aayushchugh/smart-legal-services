@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -60,10 +61,10 @@ export class AuthService {
       // send code to email
       await this.authEmailTemplateUtil.sendVerificationEmail(createdUser);
 
-      return {
-        statusCode: 201,
+      return Promise.resolve({
+        statusCode: HttpStatus.CREATED,
         message: 'User created successfully',
-      };
+      });
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -74,7 +75,7 @@ export class AuthService {
         );
       }
 
-      throw new Error(err);
+      return Promise.reject(err);
     }
   }
 
@@ -102,10 +103,10 @@ export class AuthService {
         data: { isVerified: true, verificationCode: 0 },
       });
 
-      return {
-        statusCode: 200,
+      return Promise.resolve({
+        statusCode: HttpStatus.OK,
         message: 'user verified successfully',
-      };
+      });
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
@@ -114,9 +115,7 @@ export class AuthService {
         throw new NotFoundException('invalid id');
       }
 
-      console.log(err);
-
-      throw new Error(err);
+      return Promise.reject(err);
     }
   }
 }
