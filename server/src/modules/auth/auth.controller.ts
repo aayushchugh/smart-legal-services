@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, Param, Post, Query } from "@nestjs/common";
 import { AuthService } from "./auth.service";
 import {
+	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
 	PostSignupBodyDTO,
@@ -23,5 +24,10 @@ export class AuthController {
 		@Query() query: GetVerifyEmailQueryDTO,
 	) {
 		return await this.authService.getVerifyEmail(params, query);
+	}
+
+	@Get("/signup/verification-code/resend")
+	async getResendVerifyEmail(@Query() query: GetResendVerifyEmailQueryDTO) {
+		return await this.authService.getResendVerifyEmail(query);
 	}
 }

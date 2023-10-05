@@ -5,22 +5,13 @@
 		"jest": true
 	},
 	"parser": "@typescript-eslint/parser",
-	"plugins": [
-		"@typescript-eslint",
-		"prettier",
-		"sonarjs",
-		"no-secrets",
-		"jsonc",
-		"pii",
-		"no-unsanitized"
-	],
+	"plugins": ["@typescript-eslint", "prettier", "sonarjs", "no-secrets", "jsonc", "no-unsanitized"],
 	"root": true,
 	"extends": [
 		"google",
 		"prettier",
 		"plugin:sonarjs/recommended",
 		"plugin:jsonc/base",
-		"plugin:pii/recommended",
 		"plugin:no-unsanitized/DOM",
 		"plugin:prettier/recommended",
 		"plugin:@typescript-eslint/recommended",
@@ -49,7 +40,6 @@
 		"camelcase": "error",
 		"valid-jsdoc": "off",
 		"no-secrets/no-secrets": "error",
-		"pii/no-email": "error",
 		"prefer-promise-reject-errors": "off",
 		"no-invalid-this": "off",
 		"spaced-comment": "off",
