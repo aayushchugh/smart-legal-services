@@ -1,5 +1,15 @@
-import { ConflictException, Injectable } from '@nestjs/common';
-import { AuthSignupBodyDTO, AuthSignupQueryDTO } from './auth.dto';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  GetVerifyEmailParamsDTO,
+  GetVerifyEmailQueryDTO,
+  PostSignupBodyDTO,
+  PostSignupQueryDTO,
+} from './auth.dto';
 import { Prisma } from '@prisma/client';
 import { VerificationCodeUtil } from 'src/modules/auth/utilities/verification-code.util';
 import { HashingUtil } from './utilities/hashing.util';
@@ -14,7 +24,7 @@ export class AuthService {
     private readonly authEmailTemplateUtil: AuthEmailTemplateUtil,
   ) {}
 
-  async authService(body: AuthSignupBodyDTO, query: AuthSignupQueryDTO) {
+  async postSignup(body: PostSignupBodyDTO, query: PostSignupQueryDTO) {
     try {
       // hash password
       const hashedPassword = await this.hashingUtility.generateHash(
@@ -64,7 +74,48 @@ export class AuthService {
         );
       }
 
+      throw new Error(err);
+    }
+  }
+
+  async getVerifyEmail(
+    params: GetVerifyEmailParamsDTO,
+    query: GetVerifyEmailQueryDTO,
+  ) {
+    try {
+      // get user from db
+      const user = await prisma.user.findUniqueOrThrow({
+        where: { id: params.id },
+      });
+
+      // condition v
+      if (user.verificationCode !== +query.v) {
+        throw new BadRequestException(
+          'Invalid verification code',
+          'APP_INVALID_OTP',
+        );
+      }
+
+      // mark user email as verified
+      await prisma.user.update({
+        where: { id: params.id },
+        data: { isVerified: true, verificationCode: 0 },
+      });
+
+      return {
+        statusCode: 200,
+        message: 'user verified successfully',
+      };
+    } catch (err) {
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2023'
+      ) {
+        throw new NotFoundException('invalid id');
+      }
+
       console.log(err);
+
       throw new Error(err);
     }
   }

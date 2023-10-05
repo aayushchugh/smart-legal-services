@@ -32,7 +32,7 @@ class AuthSignupAddressDTO {
   addressLine2: string;
 }
 
-export class AuthSignupBodyDTO {
+export class PostSignupBodyDTO {
   @IsNotEmpty({ message: 'name is required' })
   @IsString({ message: 'Please enter a valid string' })
   readonly name: string;
@@ -61,8 +61,17 @@ export class AuthSignupBodyDTO {
   address: AuthSignupAddressDTO;
 }
 
-export class AuthSignupQueryDTO {
+export class PostSignupQueryDTO {
   @IsNotEmpty({ message: 'type query is required' })
-  @IsString({ message: 'type query must be a valid string' })
   type: UserRole;
+}
+
+export class GetVerifyEmailQueryDTO {
+  @IsNotEmpty({ message: 'v is required' })
+  v: number;
+}
+
+export class GetVerifyEmailParamsDTO {
+  @IsNotEmpty({ message: 'id is required' })
+  id: string;
 }
