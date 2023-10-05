@@ -1,5 +1,14 @@
 import { UserRole } from "@prisma/client";
-import { Equals, IsEmail, IsNotEmpty, IsNumber, IsString, Max, Min } from "class-validator";
+import {
+	Equals,
+	IsBoolean,
+	IsEmail,
+	IsNotEmpty,
+	IsNumber,
+	IsString,
+	Max,
+	Min,
+} from "class-validator";
 
 class AuthSignupAddressDTO {
 	@IsNotEmpty({ message: "city is required" })
@@ -72,4 +81,20 @@ export class GetResendVerifyEmailQueryDTO {
 	@IsNotEmpty({ message: "e is required" })
 	@IsEmail({}, { message: "e should be a valid email" })
 	e: string;
+}
+
+export class PostSignupServiceProviderDetailsBodyDTO {
+	isBarAssociationMember: boolean;
+
+	@IsNotEmpty({ message: "experience is required" })
+	@IsNumber({}, { message: "experience must be a number" })
+	experience: number;
+
+	@IsNotEmpty({ message: "services is required" })
+	services: string[];
+}
+
+export class PostSignupServiceProviderDetailsParamsDTO {
+	@IsNotEmpty({ message: "id is required" })
+	id: string;
 }

@@ -6,6 +6,8 @@ import {
 	GetVerifyEmailQueryDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
+	PostSignupServiceProviderDetailsBodyDTO,
+	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
 
 @Controller("auth")
@@ -18,7 +20,7 @@ export class AuthController {
 		return await this.authService.postSignup(signupDto, query);
 	}
 
-	@Get("/signup/verify/:id")
+	@Get("/signup/:id/verify")
 	async getVerifyEmail(
 		@Param() params: GetVerifyEmailParamsDTO,
 		@Query() query: GetVerifyEmailQueryDTO,
@@ -29,5 +31,13 @@ export class AuthController {
 	@Get("/signup/verification-code/resend")
 	async getResendVerifyEmail(@Query() query: GetResendVerifyEmailQueryDTO) {
 		return await this.authService.getResendVerifyEmail(query);
+	}
+
+	@Post("/signup/:id/service-provider-details")
+	async postSignupServiceProviderDetails(
+		@Param() params: PostSignupServiceProviderDetailsParamsDTO,
+		@Body() body: PostSignupServiceProviderDetailsBodyDTO,
+	) {
+		return await this.authService.postSignupServiceProviderDetails(params, body);
 	}
 }

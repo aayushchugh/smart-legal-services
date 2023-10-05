@@ -1,6 +1,7 @@
 import {
 	BadRequestException,
 	ConflictException,
+	ForbiddenException,
 	HttpStatus,
 	Injectable,
 	NotFoundException,
@@ -11,6 +12,8 @@ import {
 	GetVerifyEmailQueryDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
+	PostSignupServiceProviderDetailsBodyDTO,
+	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
 import { Prisma } from "@prisma/client";
 import { VerificationCodeUtil } from "../auth/utilities/verification-code.util";
@@ -94,8 +97,8 @@ export class AuthService {
 			});
 		} catch (err) {
 			if (
-				(err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2023") ||
-				err.code === "P2025"
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
 			) {
 				throw new NotFoundException("invalid id");
 			}
@@ -131,8 +134,65 @@ export class AuthService {
 				message: "email sent successfully",
 			});
 		} catch (err) {
-			if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2025") {
+			if (
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
+			) {
 				throw new NotFoundException("invalid email");
+			}
+
+			return Promise.reject(err);
+		}
+	}
+
+	async postSignupServiceProviderDetails(
+		params: PostSignupServiceProviderDetailsParamsDTO,
+		body: PostSignupServiceProviderDetailsBodyDTO,
+	) {
+		try {
+			// find user
+			const user = await prisma.user.findUniqueOrThrow({
+				where: { id: params.id },
+			});
+
+			// check if user is verified
+			if (!user.isVerified) {
+				throw new ForbiddenException("user is not verified");
+			}
+
+			// update user
+			await prisma.user.update({
+				where: { id: params.id },
+				data: {
+					serviceProviderDetails: {
+						set: {
+							experience: body.experience,
+							isBarAssociationMember: body.isBarAssociationMember ? true : false,
+							overAllRating: {
+								average: 0,
+								behavior: 0,
+								communication: 0,
+								efficiency: 0,
+								worth: 0,
+							},
+							services: body.services,
+						},
+					},
+				},
+			});
+
+			return Promise.resolve({
+				statusCode: HttpStatus.OK,
+				message: "service provider details added successfully",
+			});
+		} catch (err) {
+			if (
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
+			) {
+				throw new NotFoundException("invalid id");
 			}
 
 			return Promise.reject(err);

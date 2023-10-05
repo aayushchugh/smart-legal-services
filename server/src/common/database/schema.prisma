@@ -43,7 +43,7 @@ type UserClientDetailsBpl {
 type UserServiceProviderDetails {
   bids String[] // TODO: make this attachment
   qualifications UserServiceProviderDetailsQualifications[]
-  licence String // TODO: make this attachment
+  license String? // TODO: make this attachment
   isBarAssociationMember Boolean? @default(false)
   experience Int
   assignedIssues String[] // TODO: make this issue
@@ -59,7 +59,7 @@ type UserServiceProviderDetailsQualifications {
 
 type UserServiceProviderDetailsOverAllRating {
   communication Int
-  behaviour Int
+  behavior Int
   efficiency Int
   worth Int
   average Int
