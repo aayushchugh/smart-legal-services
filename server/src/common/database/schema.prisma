@@ -31,38 +31,39 @@ model User {
 
 type UserClientDetails {
   issues String[] @default([])
-  bpl UserClientDetailsBpl
+  bpl UserClientDetailsBpl?
 }
 
 type UserClientDetailsBpl {
   isBPL Boolean? @default(false)
   isBPLVerified Boolean? @default(false)
-  BPLProof String? // TODO: make this a attachment
+  BPLProof Attachment?
 }
 
 type UserServiceProviderDetails {
-  bids String[] // TODO: make this attachment
+  bids String[] @default([]) // TODO: make relation
   qualifications UserServiceProviderDetailsQualifications[]
-  license String? // TODO: make this attachment
+  license Attachment?
   isBarAssociationMember Boolean? @default(false)
-  experience Int
-  assignedIssues String[] // TODO: make this issue
+  experience Int?
+  assignedIssues String[] @default([]) // TODO: make this issue
   overAllRating UserServiceProviderDetailsOverAllRating
-  ratings String[] // TODO: make this rating
-  services String[] // TODO: make this services
+  ratings String[] @default([]) // TODO: make this rating
+  services String[] @default([]) // TODO: make this services
 }
 
 type UserServiceProviderDetailsQualifications {
   title String
-  proof String[] // TODO: make this attachment
+  proof Attachment
+  type String
 }
 
 type UserServiceProviderDetailsOverAllRating {
-  communication Int
-  behavior Int
-  efficiency Int
-  worth Int
-  average Int
+  communication Int @default(0)
+  behavior Int @default(0)
+  efficiency Int @default(0)
+  worth Int @default(0)
+  average Int @default(0)
 }
 
 type Address {
@@ -71,4 +72,9 @@ type Address {
   pinCode Int
   addressLine1 String
   addressLine2 String?
+}
+
+type Attachment {
+  url String
+  fileName String
 }

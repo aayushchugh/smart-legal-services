@@ -1,4 +1,17 @@
-import { Body, Controller, Get, HttpCode, Param, Post, Query } from "@nestjs/common";
+import {
+	BadRequestException,
+	Body,
+	Controller,
+	Get,
+	HttpCode,
+	Param,
+	Post,
+	Query,
+	UploadedFiles,
+	UseInterceptors,
+	Request,
+} from "@nestjs/common";
+import { Request as RequestType } from "express";
 import { AuthService } from "./auth.service";
 import {
 	GetResendVerifyEmailQueryDTO,
@@ -6,9 +19,17 @@ import {
 	GetVerifyEmailQueryDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
+	PostSignupServiceProviderAttachmentsBodyDTO,
+	PostSignupServiceProviderAttachmentsParamsDTO,
 	PostSignupServiceProviderDetailsBodyDTO,
 	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
+import {
+	AnyFilesInterceptor,
+	FileFieldsInterceptor,
+	FilesInterceptor,
+} from "@nestjs/platform-express";
+import { MulterField } from "@nestjs/platform-express/multer/interfaces/multer-options.interface";
 
 @Controller("auth")
 export class AuthController {
@@ -33,11 +54,27 @@ export class AuthController {
 		return await this.authService.getResendVerifyEmail(query);
 	}
 
-	@Post("/signup/:id/service-provider-details")
+	@Post("/signup/:id/service-provider/details")
 	async postSignupServiceProviderDetails(
 		@Param() params: PostSignupServiceProviderDetailsParamsDTO,
 		@Body() body: PostSignupServiceProviderDetailsBodyDTO,
 	) {
 		return await this.authService.postSignupServiceProviderDetails(params, body);
+	}
+
+	@Post("/signup/:id/service-provider/attachments")
+	@UseInterceptors(AnyFilesInterceptor())
+	async postSignupServiceProviderAttachments(
+		@UploadedFiles() files: Express.Multer.File[],
+		@Param() params: PostSignupServiceProviderAttachmentsParamsDTO,
+		@Body() body: PostSignupServiceProviderAttachmentsBodyDTO,
+	) {
+		const license = files.find((file) => file.fieldname === "license");
+
+		if (!license) {
+			throw new BadRequestException("Missing license");
+		}
+
+		return await this.authService.postSignupServiceProviderAttachments(files, params, body);
 	}
 }
