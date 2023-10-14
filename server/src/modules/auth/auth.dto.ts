@@ -64,8 +64,8 @@ export class GetVerifyEmailQueryDTO {
 }
 
 export class GetVerifyEmailParamsDTO {
-	@IsNotEmpty({ message: "id is required" })
-	id: string;
+	@IsNotEmpty({ message: "email is required" })
+	email: string;
 }
 
 export class GetResendVerifyEmailQueryDTO {
@@ -86,8 +86,34 @@ export class PostSignupServiceProviderDetailsBodyDTO {
 }
 
 export class PostSignupServiceProviderDetailsParamsDTO {
-	@IsNotEmpty({ message: "id is required" })
-	id: string;
+	@IsNotEmpty({ message: "email is required" })
+	email: string;
+}
+
+export class PostSignupServiceProviderAttachmentsBodyDTO {
+	@IsNotEmpty({ message: "files are required" })
+	// NOTE: files will be in stringify json type and will contain title and type
+	qualifications: string;
+}
+
+export class PostSignupServiceProviderAttachmentsParamsDTO {
+	@IsNotEmpty({ message: "email is required" })
+	email: string;
+}
+
+export class PostAdminVerifyServiceProviderParamsDTO {
+	@IsNotEmpty({ message: "email is required" })
+	email: string;
+}
+
+export class PostLoginEmailPasswordBodyDTO {
+	@IsNotEmpty({ message: "email is required" })
+	@IsEmail({}, { message: "email should be a valid email" })
+	email: string;
+
+	@IsNotEmpty({ message: "password is required" })
+	@IsString({ message: "password should be a valid string" })
+	password: string;
 }
 
 export class PostSignupServiceProviderAttachmentsBodyDTO {

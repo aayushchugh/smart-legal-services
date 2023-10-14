@@ -5,11 +5,13 @@ import {
 	HttpStatus,
 	Injectable,
 	NotFoundException,
+	UnauthorizedException,
 } from "@nestjs/common";
 import {
 	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
+	PostLoginEmailPasswordBodyDTO,
 	PostAdminVerifyServiceProviderParamsDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
@@ -24,23 +26,21 @@ import { HashingUtil } from "./utilities/hashing.util";
 import prisma from "../../common/database/prisma";
 import { AuthEmailTemplateUtil } from "./utilities/authEmailTemplate.util";
 import { FirebaseService } from "../../util/firebase/firebase.service";
+import { OtpService } from "../../util/otp/otp.service";
 
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly verificationCodeUtil: VerificationCodeUtil,
 		private readonly hashingUtility: HashingUtil,
 		private readonly authEmailTemplateUtil: AuthEmailTemplateUtil,
 		private readonly firebaseService: FirebaseService,
+		private readonly OtpService: OtpService,
 	) {}
 
 	async postSignup(body: PostSignupBodyDTO, query: PostSignupQueryDTO) {
 		try {
 			// hash password
 			const hashedPassword = await this.hashingUtility.generateHash(body.password);
-
-			// generate verification code
-			const verificationCode = this.verificationCodeUtil.generateVerificationCode();
 
 			// create user in database
 			const createdUser = await prisma.user.create({
@@ -51,7 +51,6 @@ export class AuthService {
 					phone: body.phone,
 					role: query.type === "serviceProvider" ? "serviceProvider" : "user",
 					isVerified: false,
-					verificationCode,
 					address: {
 						city: body.address.city,
 						state: body.address.state,
@@ -62,8 +61,14 @@ export class AuthService {
 				},
 			});
 
+			const otp = await this.OtpService.generateOtp(createdUser.id, "signup");
+
 			// send code to email
-			await this.authEmailTemplateUtil.sendVerificationEmail(createdUser);
+			await this.authEmailTemplateUtil.sendSignupVerificationEmail(
+				createdUser.name,
+				createdUser.email,
+				otp.otp,
+			);
 
 			return Promise.resolve({
 				statusCode: HttpStatus.CREATED,
@@ -82,18 +87,25 @@ export class AuthService {
 		try {
 			// get user from db
 			const user = await prisma.user.findUniqueOrThrow({
-				where: { id: params.id },
+				where: { email: params.email },
+				include: { otps: true },
 			});
 
-			// condition v
-			if (user.verificationCode !== +query.v) {
-				throw new BadRequestException("Invalid verification code", "APP_INVALID_OTP");
+			// check if user already verified
+			if (user.isVerified) {
+				throw new ConflictException("user already verified", "APP_USER_ALREADY_VERIFIED");
 			}
 
-			// mark user email as verified
+			// check if otp is valid
+			const isOtpCorrect = await this.OtpService.verifyOtp(user.id, +query.v, "signup");
+
+			if (!isOtpCorrect) {
+				throw new BadRequestException("Invalid OTP", "APP_INVALID_OTP");
+			}
+
 			await prisma.user.update({
-				where: { id: params.id },
-				data: { isVerified: true, verificationCode: 0 },
+				where: { email: params.email },
+				data: { isVerified: true },
 			});
 
 			return Promise.resolve({
@@ -105,7 +117,7 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid id");
+				throw new NotFoundException("invalid email");
 			}
 
 			return Promise.reject(err);
@@ -124,15 +136,14 @@ export class AuthService {
 				throw new ConflictException("user already verified");
 			}
 
-			// generate new verification code
-			const verificationCode = this.verificationCodeUtil.generateVerificationCode();
-			const updatedUser = await prisma.user.update({
-				where: { email: query.e },
-				data: { verificationCode },
-			});
+			// delete previous otps
+			await prisma.otp.deleteMany({ where: { userId: user.id, reason: "signup" } });
 
-			// send email
-			await this.authEmailTemplateUtil.sendVerificationEmail(updatedUser);
+			// generate new verification code
+			const otp = await this.OtpService.generateOtp(user.id, "signup");
+
+			// send code to email
+			await this.authEmailTemplateUtil.sendSignupVerificationEmail(user.name, user.email, otp.otp);
 
 			return Promise.resolve({
 				statusCode: HttpStatus.OK,
@@ -158,7 +169,7 @@ export class AuthService {
 		try {
 			// find user
 			const user = await prisma.user.findUniqueOrThrow({
-				where: { id: params.id },
+				where: { email: params.email },
 			});
 
 			// check if user is verified
@@ -168,7 +179,7 @@ export class AuthService {
 
 			// update user
 			await prisma.user.update({
-				where: { id: params.id },
+				where: { email: params.email },
 				data: {
 					serviceProviderDetails: {
 						set: {
@@ -197,13 +208,177 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid id");
+				throw new NotFoundException("invalid email");
 			}
 
 			return Promise.reject(err);
 		}
 	}
 
+	async postSignupServiceProviderAttachments(
+		files: Express.Multer.File[],
+		params: PostSignupServiceProviderAttachmentsParamsDTO,
+		body: PostSignupServiceProviderAttachmentsBodyDTO,
+	) {
+		try {
+			// find user
+			const user = await prisma.user.findUniqueOrThrow({
+				where: {
+					email: params.email,
+				},
+			});
+
+			if (!user.isVerified) {
+				throw new ForbiddenException("user is not verified");
+			}
+
+			const licenseFile = files.find((file) => file.fieldname === "license");
+
+			const qualificationFiles = files.filter((file) => file.fieldname !== "license");
+
+			// upload files to firebase
+			const licenseFileName = `${user.name}-${user.id}-${
+				licenseFile.originalname
+			}-${new Date().toISOString()}`;
+
+			const licenseUrl = await this.firebaseService.uploadImageBuffer(
+				licenseFile.buffer,
+				licenseFileName,
+				{ contentType: licenseFile.mimetype },
+			);
+
+			const parsedBody: { title: string; type: string }[] = JSON.parse(body.qualifications);
+
+			const uploadedQualifications: UserServiceProviderDetailsQualifications[] = [];
+
+			for (let i = 0; i < qualificationFiles.length; i++) {
+				const file = qualificationFiles[i];
+
+				const qualificationFileName = `${user.name}-${user.id}-${
+					file.originalname
+				}-${new Date().toISOString()}`;
+
+				// upload file to firebase
+				const uploadedFile = await this.firebaseService.uploadImageBuffer(
+					file.buffer,
+					qualificationFileName,
+					{
+						contentType: file.mimetype,
+					},
+				);
+
+				const fileUrl = await this.firebaseService.getFileUrl(uploadedFile.ref.fullPath);
+
+				const qualificationTitle = parsedBody.find((item) => item.type === file.fieldname).title;
+
+				// push file to uploadQualifications
+				uploadedQualifications.push({
+					title: qualificationTitle,
+					type: file.fieldname,
+					proof: {
+						fileName: qualificationFileName,
+						url: fileUrl,
+					},
+				});
+			}
+
+			// set license in database
+			await prisma.user.update({
+				where: { email: params.email },
+				data: {
+					serviceProviderDetails: {
+						set: {
+							...user.serviceProviderDetails,
+							license: {
+								fileName: licenseFileName,
+								url: await this.firebaseService.getFileUrl(licenseUrl.ref.fullPath),
+							},
+							qualifications: uploadedQualifications,
+						},
+					},
+				},
+			});
+
+			return Promise.resolve({
+				statusCode: HttpStatus.OK,
+				message: "attachments uploaded successfully",
+			});
+		} catch (err) {
+			if (
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
+			) {
+				throw new NotFoundException("invalid email");
+			}
+
+			return Promise.reject(err);
+		}
+	}
+
+	async postLoginEmailPassword(body: PostLoginEmailPasswordBodyDTO) {
+		try {
+			// find user
+			const user = await prisma.user.findUniqueOrThrow({
+				where: { email: body.email },
+			});
+
+			// check if user is verified
+			if (!user.isVerified) {
+				throw new ForbiddenException("user is not verified", "APP_USER_NOT_VERIFIED");
+			}
+
+			// check if user is service provider and is verified
+			if (
+				user.role === "serviceProvider" &&
+				user.serviceProviderDetails &&
+				!user.serviceProviderDetails.isVerified
+			) {
+				throw new ForbiddenException(
+					"service provider is not verified",
+					"APP_SERVICE_PROVIDER_NOT_VERIFIED",
+				);
+			}
+
+			if (user.blocked && user.blocked.isBlocked) {
+				throw new ForbiddenException("user is blocked", "APP_USER_BLOCKED");
+			}
+
+			// TODO: check if user has completed the payment
+
+			// check if password is correct
+			const isPasswordCorrect = await this.hashingUtility.compareHash(body.password, user.password);
+
+			if (!isPasswordCorrect) {
+				throw new UnauthorizedException("invalid password", "APP_INVALID_PASSWORD");
+			}
+
+			// generate otp for login
+			const otp = await this.OtpService.generateOtp(user.id, "login");
+
+			// send otp to user
+			await this.authEmailTemplateUtil.sendLoginVerificationEmail(user.name, user.email, otp.otp);
+
+			return Promise.resolve({
+				statusCode: HttpStatus.OK,
+				message: "login otp sent successfully",
+			});
+		} catch (err) {
+			if (
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
+			) {
+				throw new NotFoundException("invalid email");
+			}
+
+			console.log(err);
+
+			return Promise.reject(err);
+		}
+	}
+
+	// async postAdminVerifyServiceProvider(params: PostAdminVerifyServiceProviderParamsDTO) {}
 	async postSignupServiceProviderAttachments(
 		files: Express.Multer.File[],
 		params: PostSignupServiceProviderAttachmentsParamsDTO,
@@ -305,5 +480,5 @@ export class AuthService {
 		}
 	}
 
-	async postAdminVerifyServiceProvider(params: PostAdminVerifyServiceProviderParamsDTO) {}
+//	async postAdminVerifyServiceProvider(params: PostAdminVerifyServiceProviderParamsDTO) {}
 }

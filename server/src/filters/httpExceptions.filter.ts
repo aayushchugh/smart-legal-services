@@ -17,12 +17,12 @@ export class HttpExceptionsFilter implements ExceptionFilter {
 		const request = ctx.getRequest<Request>();
 		const response = ctx.getResponse<Response>();
 		const statusCode = exception.getStatus();
-		const { message } = exception.response;
+		const { message, error } = exception.response;
 
 		const responseBody = {
 			statusCode,
 			message,
-			error: HttpStatus[statusCode],
+			error: error || HttpStatus[statusCode],
 		};
 
 		const { method, url, ip } = request;

@@ -21,6 +21,7 @@ import {
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
 	PostAdminVerifyServiceProviderParamsDTO,
+	PostLoginEmailPasswordBodyDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
 	PostSignupServiceProviderAttachmentsBodyDTO,
@@ -40,7 +41,7 @@ export class AuthController {
 		return await this.authService.postSignup(signupDto, query);
 	}
 
-	@Get("/signup/:id/verify")
+	@Get("/signup/:email/verify")
 	async getVerifyEmail(
 		@Param() params: GetVerifyEmailParamsDTO,
 		@Query() query: GetVerifyEmailQueryDTO,
@@ -53,7 +54,7 @@ export class AuthController {
 		return await this.authService.getResendVerifyEmail(query);
 	}
 
-	@Post("/signup/:id/service-provider/details")
+	@Post("/signup/:email/service-provider/details")
 	async postSignupServiceProviderDetails(
 		@Param() params: PostSignupServiceProviderDetailsParamsDTO,
 		@Body() body: PostSignupServiceProviderDetailsBodyDTO,
@@ -61,7 +62,8 @@ export class AuthController {
 		return await this.authService.postSignupServiceProviderDetails(params, body);
 	}
 
-	@Post("/signup/:id/service-provider/attachments")
+
+	@Post("/signup/:email/service-provider/attachments")
 	@UseInterceptors(AnyFilesInterceptor())
 	async postSignupServiceProviderAttachments(
 		@UploadedFiles(
@@ -91,8 +93,13 @@ export class AuthController {
 		return await this.authService.postSignupServiceProviderAttachments(files, params, body);
 	}
 
-	@Post("/admin/auth/verify-service-provider/:id")
-	async postAdminVerifyServiceProvider(@Param() params: PostAdminVerifyServiceProviderParamsDTO) {
-		return await this.authService.postAdminVerifyServiceProvider(params);
+	@Post("/login/email-password")
+	async postLoginEmailPassword(@Body() body: PostLoginEmailPasswordBodyDTO) {
+		return await this.authService.postLoginEmailPassword(body);
 	}
+
+	// @Post("/admin/auth/verify-service-provider/:email")
+	// async postAdminVerifyServiceProvider(@Param() params: PostAdminVerifyServiceProviderParamsDTO) {
+	// 	return await this.authService.postAdminVerifyServiceProvider(params);
+	// }
 }
