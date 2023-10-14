@@ -10,16 +10,20 @@ import {
 	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
+	PostAdminVerifyServiceProviderParamsDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
+	PostSignupServiceProviderAttachmentsBodyDTO,
+	PostSignupServiceProviderAttachmentsParamsDTO,
 	PostSignupServiceProviderDetailsBodyDTO,
 	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
-import { Prisma } from "@prisma/client";
+import { Prisma, UserServiceProviderDetailsQualifications } from "@prisma/client";
 import { VerificationCodeUtil } from "../auth/utilities/verification-code.util";
 import { HashingUtil } from "./utilities/hashing.util";
 import prisma from "../../common/database/prisma";
 import { AuthEmailTemplateUtil } from "./utilities/authEmailTemplate.util";
+import { FirebaseService } from "../../util/firebase/firebase.service";
 
 @Injectable()
 export class AuthService {
@@ -27,6 +31,7 @@ export class AuthService {
 		private readonly verificationCodeUtil: VerificationCodeUtil,
 		private readonly hashingUtility: HashingUtil,
 		private readonly authEmailTemplateUtil: AuthEmailTemplateUtil,
+		private readonly firebaseService: FirebaseService,
 	) {}
 
 	async postSignup(body: PostSignupBodyDTO, query: PostSignupQueryDTO) {
@@ -198,4 +203,107 @@ export class AuthService {
 			return Promise.reject(err);
 		}
 	}
+
+	async postSignupServiceProviderAttachments(
+		files: Express.Multer.File[],
+		params: PostSignupServiceProviderAttachmentsParamsDTO,
+		body: PostSignupServiceProviderAttachmentsBodyDTO,
+	) {
+		try {
+			// find user
+			const user = await prisma.user.findUniqueOrThrow({
+				where: {
+					id: params.id,
+				},
+			});
+
+			if (!user.isVerified) {
+				throw new ForbiddenException("user is not verified");
+			}
+
+			const licenseFile = files.find((file) => file.fieldname === "license");
+
+			const qualificationFiles = files.filter((file) => file.fieldname !== "license");
+
+			// upload files to firebase
+			const licenseFileName = `${user.name}-${user.id}-${
+				licenseFile.originalname
+			}-${new Date().toISOString()}`;
+
+			const licenseUrl = await this.firebaseService.uploadImageBuffer(
+				licenseFile.buffer,
+				licenseFileName,
+				{ contentType: licenseFile.mimetype },
+			);
+
+			const parsedBody: { title: string; type: string }[] = JSON.parse(body.qualifications);
+
+			const uploadedQualifications: UserServiceProviderDetailsQualifications[] = [];
+
+			for (let i = 0; i < qualificationFiles.length; i++) {
+				const file = qualificationFiles[i];
+
+				const qualificationFileName = `${user.name}-${user.id}-${
+					file.originalname
+				}-${new Date().toISOString()}`;
+
+				// upload file to firebase
+				const uploadedFile = await this.firebaseService.uploadImageBuffer(
+					file.buffer,
+					qualificationFileName,
+					{
+						contentType: file.mimetype,
+					},
+				);
+
+				const fileUrl = await this.firebaseService.getFileUrl(uploadedFile.ref.fullPath);
+
+				const qualificationTitle = parsedBody.find((item) => item.type === file.fieldname).title;
+
+				// push file to uploadQualifications
+				uploadedQualifications.push({
+					title: qualificationTitle,
+					type: file.fieldname,
+					proof: {
+						fileName: qualificationFileName,
+						url: fileUrl,
+					},
+				});
+			}
+
+			// set license in database
+			await prisma.user.update({
+				where: { id: params.id },
+				data: {
+					serviceProviderDetails: {
+						set: {
+							...user.serviceProviderDetails,
+							license: {
+								fileName: licenseFileName,
+								url: await this.firebaseService.getFileUrl(licenseUrl.ref.fullPath),
+							},
+							qualifications: uploadedQualifications,
+						},
+					},
+				},
+			});
+
+			return Promise.resolve({
+				statusCode: HttpStatus.OK,
+				message: "attachments uploaded successfully",
+			});
+		} catch (err) {
+			if (
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
+			) {
+				throw new NotFoundException("invalid id");
+			}
+
+			return Promise.reject(err);
+		}
+	}
+
+	async postAdminVerifyServiceProvider(params: PostAdminVerifyServiceProviderParamsDTO) {}
 }
