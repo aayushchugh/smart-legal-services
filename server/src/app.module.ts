@@ -15,7 +15,7 @@ import { OtpModule } from "./util/otp/otp.module";
 		FirebaseModule,
 		OtpModule,
 	],
-
+})
 @UseFilters(AllExceptionsFilter)
 export class AppModule {
 	configure(consumer: MiddlewareConsumer): void {

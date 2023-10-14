@@ -90,12 +90,6 @@ export class PostSignupServiceProviderDetailsParamsDTO {
 	email: string;
 }
 
-export class PostSignupServiceProviderAttachmentsBodyDTO {
-	@IsNotEmpty({ message: "files are required" })
-	// NOTE: files will be in stringify json type and will contain title and type
-	qualifications: string;
-}
-
 export class PostSignupServiceProviderAttachmentsParamsDTO {
 	@IsNotEmpty({ message: "email is required" })
 	email: string;
@@ -120,14 +114,4 @@ export class PostSignupServiceProviderAttachmentsBodyDTO {
 	@IsNotEmpty({ message: "files are required" })
 	// NOTE: files will be in stringify json type and will contain title and type
 	qualifications: string;
-}
-
-export class PostSignupServiceProviderAttachmentsParamsDTO {
-	@IsNotEmpty({ message: "id is required" })
-	id: string;
-}
-
-export class PostAdminVerifyServiceProviderParamsDTO {
-	@IsNotEmpty({ message: "id is required" })
-	id: string;
 }

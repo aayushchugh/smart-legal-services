@@ -62,7 +62,6 @@ export class AuthController {
 		return await this.authService.postSignupServiceProviderDetails(params, body);
 	}
 
-
 	@Post("/signup/:email/service-provider/attachments")
 	@UseInterceptors(AnyFilesInterceptor())
 	async postSignupServiceProviderAttachments(
