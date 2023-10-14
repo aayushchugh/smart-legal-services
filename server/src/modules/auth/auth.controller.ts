@@ -2,21 +2,25 @@ import {
 	BadRequestException,
 	Body,
 	Controller,
+	FileTypeValidator,
 	Get,
 	HttpCode,
+	HttpStatus,
+	MaxFileSizeValidator,
 	Param,
+	ParseFilePipe,
 	Post,
 	Query,
+	UnprocessableEntityException,
 	UploadedFiles,
 	UseInterceptors,
-	Request,
 } from "@nestjs/common";
-import { Request as RequestType } from "express";
 import { AuthService } from "./auth.service";
 import {
 	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
+	PostAdminVerifyServiceProviderParamsDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
 	PostSignupServiceProviderAttachmentsBodyDTO,
@@ -24,12 +28,7 @@ import {
 	PostSignupServiceProviderDetailsBodyDTO,
 	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
-import {
-	AnyFilesInterceptor,
-	FileFieldsInterceptor,
-	FilesInterceptor,
-} from "@nestjs/platform-express";
-import { MulterField } from "@nestjs/platform-express/multer/interfaces/multer-options.interface";
+import { AnyFilesInterceptor } from "@nestjs/platform-express";
 
 @Controller("auth")
 export class AuthController {
@@ -65,7 +64,21 @@ export class AuthController {
 	@Post("/signup/:id/service-provider/attachments")
 	@UseInterceptors(AnyFilesInterceptor())
 	async postSignupServiceProviderAttachments(
-		@UploadedFiles() files: Express.Multer.File[],
+		@UploadedFiles(
+			new ParseFilePipe({
+				validators: [
+					new MaxFileSizeValidator({ maxSize: 4000000 }), // 4 mb
+					new FileTypeValidator({ fileType: /^(image\/jpeg|image\/jpg|image\/png)$/ }),
+				],
+				errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+				exceptionFactory() {
+					return new UnprocessableEntityException(
+						"You can only upload .png, .jpg or .jpeg less than 4mb",
+					);
+				},
+			}),
+		)
+		files: Express.Multer.File[],
 		@Param() params: PostSignupServiceProviderAttachmentsParamsDTO,
 		@Body() body: PostSignupServiceProviderAttachmentsBodyDTO,
 	) {
@@ -76,5 +89,10 @@ export class AuthController {
 		}
 
 		return await this.authService.postSignupServiceProviderAttachments(files, params, body);
+	}
+
+	@Post("/admin/auth/verify-service-provider/:id")
+	async postAdminVerifyServiceProvider(@Param() params: PostAdminVerifyServiceProviderParamsDTO) {
+		return await this.authService.postAdminVerifyServiceProvider(params);
 	}
 }

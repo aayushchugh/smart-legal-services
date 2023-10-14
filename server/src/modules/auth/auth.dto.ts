@@ -100,3 +100,8 @@ export class PostSignupServiceProviderAttachmentsParamsDTO {
 	@IsNotEmpty({ message: "id is required" })
 	id: string;
 }
+
+export class PostAdminVerifyServiceProviderParamsDTO {
+	@IsNotEmpty({ message: "id is required" })
+	id: string;
+}

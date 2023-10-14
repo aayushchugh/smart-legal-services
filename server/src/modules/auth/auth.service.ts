@@ -10,6 +10,7 @@ import {
 	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
+	PostAdminVerifyServiceProviderParamsDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
 	PostSignupServiceProviderAttachmentsBodyDTO,
@@ -303,4 +304,6 @@ export class AuthService {
 			return Promise.reject(err);
 		}
 	}
+
+	async postAdminVerifyServiceProvider(params: PostAdminVerifyServiceProviderParamsDTO) {}
 }
