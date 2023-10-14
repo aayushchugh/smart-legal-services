@@ -21,6 +21,7 @@ import {
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
 	PostAdminVerifyServiceProviderParamsDTO,
+	PostLoginEmailPasswordBodyDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
 	PostSignupServiceProviderAttachmentsBodyDTO,
@@ -91,9 +92,9 @@ export class AuthController {
 		return await this.authService.postSignupServiceProviderAttachments(files, params, body);
 	}
 
-	@Post("/login")
-	async postLogin(@Body() body) {
-		return await this.authService.postLogin();
+	@Post("/login/email-password")
+	async postLoginEmailPassword(@Body() body: PostLoginEmailPasswordBodyDTO) {
+		return await this.authService.postLoginEmailPassword(body);
 	}
 
 	// @Post("/admin/auth/verify-service-provider/:email")

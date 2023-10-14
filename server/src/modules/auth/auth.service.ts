@@ -5,11 +5,13 @@ import {
 	HttpStatus,
 	Injectable,
 	NotFoundException,
+	UnauthorizedException,
 } from "@nestjs/common";
 import {
 	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
+	PostLoginEmailPasswordBodyDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
 	PostSignupServiceProviderAttachmentsBodyDTO,
@@ -18,7 +20,6 @@ import {
 	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
 import { Prisma, UserServiceProviderDetailsQualifications } from "@prisma/client";
-import { VerificationCodeUtil } from "../auth/utilities/verification-code.util";
 import { HashingUtil } from "./utilities/hashing.util";
 import prisma from "../../common/database/prisma";
 import { AuthEmailTemplateUtil } from "./utilities/authEmailTemplate.util";
@@ -28,7 +29,6 @@ import { OtpService } from "../../util/otp/otp.service";
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly verificationCodeUtil: VerificationCodeUtil,
 		private readonly hashingUtility: HashingUtil,
 		private readonly authEmailTemplateUtil: AuthEmailTemplateUtil,
 		private readonly firebaseService: FirebaseService,
@@ -62,7 +62,7 @@ export class AuthService {
 			const otp = await this.OtpService.generateOtp(createdUser.id, "signup");
 
 			// send code to email
-			await this.authEmailTemplateUtil.sendVerificationEmail(
+			await this.authEmailTemplateUtil.sendSignupVerificationEmail(
 				createdUser.name,
 				createdUser.email,
 				otp.otp,
@@ -91,21 +91,20 @@ export class AuthService {
 
 			// check if user already verified
 			if (user.isVerified) {
-				throw new ConflictException("user already verified");
+				throw new ConflictException("user already verified", "APP_USER_ALREADY_VERIFIED");
 			}
 
 			// check if otp is valid
-			const otp = user.otps.find((otp) => otp.otp === +query.v && otp.reason === "signup");
+			const isOtpCorrect = await this.OtpService.verifyOtp(user.id, +query.v, "signup");
 
-			if (!otp) {
-				throw new BadRequestException("Invalid verification code", "APP_INVALID_OTP");
+			if (!isOtpCorrect) {
+				throw new BadRequestException("Invalid OTP", "APP_INVALID_OTP");
 			}
 
 			await prisma.user.update({
 				where: { email: params.email },
 				data: { isVerified: true },
 			});
-			await prisma.otp.delete({ where: { id: otp.id } });
 
 			return Promise.resolve({
 				statusCode: HttpStatus.OK,
@@ -142,7 +141,7 @@ export class AuthService {
 			const otp = await this.OtpService.generateOtp(user.id, "signup");
 
 			// send code to email
-			await this.authEmailTemplateUtil.sendVerificationEmail(user.name, user.email, otp.otp);
+			await this.authEmailTemplateUtil.sendSignupVerificationEmail(user.name, user.email, otp.otp);
 
 			return Promise.resolve({
 				statusCode: HttpStatus.OK,
@@ -315,7 +314,67 @@ export class AuthService {
 		}
 	}
 
-	async postLogin() {}
+	async postLoginEmailPassword(body: PostLoginEmailPasswordBodyDTO) {
+		try {
+			// find user
+			const user = await prisma.user.findUniqueOrThrow({
+				where: { email: body.email },
+			});
+
+			// check if user is verified
+			if (!user.isVerified) {
+				throw new ForbiddenException("user is not verified", "APP_USER_NOT_VERIFIED");
+			}
+
+			// check if user is service provider and is verified
+			if (
+				user.role === "serviceProvider" &&
+				user.serviceProviderDetails &&
+				!user.serviceProviderDetails.isVerified
+			) {
+				throw new ForbiddenException(
+					"service provider is not verified",
+					"APP_SERVICE_PROVIDER_NOT_VERIFIED",
+				);
+			}
+
+			if (user.blocked && user.blocked.isBlocked) {
+				throw new ForbiddenException("user is blocked", "APP_USER_BLOCKED");
+			}
+
+			// TODO: check if user has completed the payment
+
+			// check if password is correct
+			const isPasswordCorrect = await this.hashingUtility.compareHash(body.password, user.password);
+
+			if (!isPasswordCorrect) {
+				throw new UnauthorizedException("invalid password", "APP_INVALID_PASSWORD");
+			}
+
+			// generate otp for login
+			const otp = await this.OtpService.generateOtp(user.id, "login");
+
+			// send otp to user
+			await this.authEmailTemplateUtil.sendLoginVerificationEmail(user.name, user.email, otp.otp);
+
+			return Promise.resolve({
+				statusCode: HttpStatus.OK,
+				message: "login otp sent successfully",
+			});
+		} catch (err) {
+			if (
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
+			) {
+				throw new NotFoundException("invalid email");
+			}
+
+			console.log(err);
+
+			return Promise.reject(err);
+		}
+	}
 
 	// async postAdminVerifyServiceProvider(params: PostAdminVerifyServiceProviderParamsDTO) {}
 }

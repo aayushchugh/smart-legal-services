@@ -11,7 +11,11 @@ export class AuthEmailTemplateUtil {
 	 * @param userEmail The email of the user to whom the verification email is to be sent
 	 * @param otp The otp to be sent to the user
 	 */
-	public async sendVerificationEmail(userName: string, userEmail: string, otp: number) {
+	public async sendSignupVerificationEmail(
+		userName: string,
+		userEmail: string,
+		otp: number,
+	): Promise<any> {
 		const emailTemplate = `
 			<div>
 				<h1>Hey ${userName}! Welcome to Smart Legal Services</h1>
@@ -20,7 +24,40 @@ export class AuthEmailTemplateUtil {
 			</div>
 		`;
 
-		await this.mailerService.sendEmail(userEmail, "Please verify you'r email", emailTemplate);
+		return await this.mailerService.sendEmail(
+			userEmail,
+			"Please verify you'r email",
+			emailTemplate,
+		);
+	}
+
+	/**
+	 * Send login OTP to the user's email
+	 *
+	 * @param {string} userName User's name
+	 * @param {string} userEmail User's email
+	 * @param {number} otp OTP to be sent to the user
+	 * @return {Promise<any>}
+	 * @memberof AuthEmailTemplateUtil
+	 */
+	public async sendLoginVerificationEmail(
+		userName: string,
+		userEmail: string,
+		otp: number,
+	): Promise<any> {
+		const emailTemplate = `
+    	  <div>
+    	   <h1>Hey ${userName}! Welcome Back</h1>
+        	<p>Enter this OTP: <strong>${otp}</strong>, to login to your account</p>
+        	<p>Please don't share this OTP with someone else</p>
+      	  </div>
+    	`;
+
+		return await this.mailerService.sendEmail(
+			userEmail,
+			"Please verify you'r email",
+			emailTemplate,
+		);
 	}
 
 	/**

@@ -106,7 +106,7 @@ export class PostAdminVerifyServiceProviderParamsDTO {
 	email: string;
 }
 
-export class PostLoginBodyDTO {
+export class PostLoginEmailPasswordBodyDTO {
 	@IsNotEmpty({ message: "email is required" })
 	@IsEmail({}, { message: "email should be a valid email" })
 	email: string;
