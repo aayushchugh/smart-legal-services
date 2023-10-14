@@ -22,9 +22,9 @@ model User {
   role UserRole
   address Address
   isVerified Boolean @default(false)
-  verificationCode Int
   clientDetails UserClientDetails?
   serviceProviderDetails UserServiceProviderDetails?
+  otps Otp[]
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
 }
@@ -77,4 +77,21 @@ type Address {
 type Attachment {
   url String
   fileName String
+}
+
+enum OTPReason {
+  verification
+  forgotPassword
+  signup
+  login
+}
+
+model Otp {
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  user User @relation(fields: [userId], references: [id])
+  userId String @db.ObjectId
+  otp Int
+  reason OTPReason
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 }

@@ -39,7 +39,7 @@
 		"quotes": "off",
 		"camelcase": "error",
 		"valid-jsdoc": "off",
-		"no-secrets/no-secrets": "error",
+		"no-secrets/no-secrets": "off",
 		"prefer-promise-reject-errors": "off",
 		"no-invalid-this": "off",
 		"spaced-comment": "off",

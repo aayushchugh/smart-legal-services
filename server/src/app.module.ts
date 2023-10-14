@@ -5,9 +5,16 @@ import { MailerModule } from "./util/mailer/mailer.module";
 import { AllExceptionsFilter } from "./filters/allExceptions.filter";
 import RequestLoggerMiddleware from "./middleware/requestLogger.middleware";
 import { FirebaseModule } from "./util/firebase/firebase.module";
+import { OtpModule } from "./util/otp/otp.module";
 
 @Module({
-	imports: [ConfigModule.forRoot({ isGlobal: true }), AuthModule, MailerModule, FirebaseModule],
+	imports: [
+		ConfigModule.forRoot({ isGlobal: true }),
+		AuthModule,
+		MailerModule,
+		FirebaseModule,
+		OtpModule,
+	],
 	controllers: [],
 })
 @UseFilters(AllExceptionsFilter)
