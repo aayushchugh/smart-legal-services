@@ -11,7 +11,7 @@ import {
 	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
 	GetVerifyEmailQueryDTO,
-	PostLoginEmailPasswordBodyDTO,
+	PostLoginBodyDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
 	PostSignupServiceProviderAttachmentsBodyDTO,
@@ -19,7 +19,7 @@ import {
 	PostSignupServiceProviderDetailsBodyDTO,
 	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
-import { Prisma, UserServiceProviderDetailsQualifications } from "@prisma/client";
+import { Prisma, User, UserServiceProviderDetailsQualifications } from "@prisma/client";
 import { HashingUtil } from "./utilities/hashing.util";
 import prisma from "../../common/database/prisma";
 import { AuthEmailTemplateUtil } from "./utilities/authEmailTemplate.util";
@@ -314,12 +314,20 @@ export class AuthService {
 		}
 	}
 
-	async postLoginEmailPassword(body: PostLoginEmailPasswordBodyDTO) {
+	async postLogin(body: PostLoginBodyDTO) {
 		try {
+			let user: User;
+
 			// find user
-			const user = await prisma.user.findUniqueOrThrow({
-				where: { email: body.email },
-			});
+			if (body.emailPhone.includes("@")) {
+				user = await prisma.user.findUniqueOrThrow({
+					where: { email: body.emailPhone },
+				});
+			} else {
+				user = await prisma.user.findUniqueOrThrow({
+					where: { phone: +body.emailPhone },
+				});
+			}
 
 			// check if user is verified
 			if (!user.isVerified) {
