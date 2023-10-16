@@ -437,8 +437,8 @@ export class AuthService {
 				},
 			});
 
+			// const refreshToken = await this.authTokenUtil.signRefreshToken(session.id);
 			const refreshToken = await this.authTokenUtil.signRefreshToken(session.id);
-
 			return Promise.resolve({
 				statusCode: HttpStatus.OK,
 				message: "login successful",
