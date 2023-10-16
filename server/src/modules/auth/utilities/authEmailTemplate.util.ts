@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { MailerService } from "../../../util/mailer/mailer.service";
 
 @Injectable()
-export class AuthEmailTemplateUtil {
+class AuthEmailTemplateUtil {
 	constructor(private readonly mailerService: MailerService) {}
 
 	/**
@@ -80,3 +80,5 @@ export class AuthEmailTemplateUtil {
 	// 	);
 	// }
 }
+
+export default AuthEmailTemplateUtil;

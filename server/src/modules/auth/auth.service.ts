@@ -9,9 +9,11 @@ import {
 } from "@nestjs/common";
 import {
 	GetResendVerifyEmailQueryDTO,
+	GetVerifyEmailBodyDTO,
 	GetVerifyEmailParamsDTO,
-	GetVerifyEmailQueryDTO,
 	PostLoginBodyDTO,
+	PostLoginVerifyBodyDTO,
+	PostLoginVerifyParamsDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
 	PostSignupServiceProviderAttachmentsBodyDTO,
@@ -20,19 +22,21 @@ import {
 	PostSignupServiceProviderDetailsParamsDTO,
 } from "./auth.dto";
 import { Prisma, User, UserServiceProviderDetailsQualifications } from "@prisma/client";
-import { HashingUtil } from "./utilities/hashing.util";
 import prisma from "../../common/database/prisma";
-import { AuthEmailTemplateUtil } from "./utilities/authEmailTemplate.util";
 import { FirebaseService } from "../../util/firebase/firebase.service";
 import { OtpService } from "../../util/otp/otp.service";
+import AuthHashingUtil from "./utilities/hashing.util";
+import AuthEmailTemplateUtil from "./utilities/authEmailTemplate.util";
+import AuthTokensUtil from "./utilities/authToken.util";
 
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly hashingUtility: HashingUtil,
+		private readonly hashingUtility: AuthHashingUtil,
 		private readonly authEmailTemplateUtil: AuthEmailTemplateUtil,
 		private readonly firebaseService: FirebaseService,
 		private readonly OtpService: OtpService,
+		private readonly authTokenUtil: AuthTokensUtil,
 	) {}
 
 	async postSignup(body: PostSignupBodyDTO, query: PostSignupQueryDTO) {
@@ -81,7 +85,7 @@ export class AuthService {
 		}
 	}
 
-	async getVerifyEmail(params: GetVerifyEmailParamsDTO, query: GetVerifyEmailQueryDTO) {
+	async getVerifyEmail(params: GetVerifyEmailParamsDTO, body: GetVerifyEmailBodyDTO) {
 		try {
 			// get user from db
 			const user = await prisma.user.findUniqueOrThrow({
@@ -95,7 +99,7 @@ export class AuthService {
 			}
 
 			// check if otp is valid
-			const isOtpCorrect = await this.OtpService.verifyOtp(user.id, +query.v, "signup");
+			const isOtpCorrect = await this.OtpService.verifyOtp(user.id, +body.otp, "signup");
 
 			if (!isOtpCorrect) {
 				throw new BadRequestException("Invalid OTP", "APP_INVALID_OTP");
@@ -368,6 +372,80 @@ export class AuthService {
 			return Promise.resolve({
 				statusCode: HttpStatus.OK,
 				message: "login otp sent successfully",
+			});
+		} catch (err) {
+			if (
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				err instanceof Prisma.PrismaClientKnownRequestError &&
+				(err.code === "P2023" || err.code === "P2025")
+			) {
+				throw new NotFoundException("invalid email");
+			}
+
+			return Promise.reject(err);
+		}
+	}
+
+	async postLoginVerify(params: PostLoginVerifyParamsDTO, body: PostLoginVerifyBodyDTO) {
+		try {
+			// find user
+			const user = await prisma.user.findUniqueOrThrow({
+				where: { email: params.email },
+				include: { otps: true },
+			});
+
+			// check if user is verified
+			if (!user.isVerified) {
+				throw new ForbiddenException("user is not verified", "APP_USER_NOT_VERIFIED");
+			}
+
+			// check if user is service provider and is verified
+			if (
+				user.role === "serviceProvider" &&
+				user.serviceProviderDetails &&
+				!user.serviceProviderDetails.isVerified
+			) {
+				throw new ForbiddenException(
+					"service provider is not verified",
+					"APP_SERVICE_PROVIDER_NOT_VERIFIED",
+				);
+			}
+
+			if (user.blocked && user.blocked.isBlocked) {
+				throw new ForbiddenException("user is blocked", "APP_USER_BLOCKED");
+			}
+
+			// TODO: check if payment is completed
+
+			// validate otp
+			const isOtpCorrect = await this.OtpService.verifyOtp(user.id, +body.otp, "login");
+
+			if (!isOtpCorrect) {
+				throw new BadRequestException("Invalid OTP", "APP_INVALID_OTP");
+			}
+
+			// generate jwt token
+			const accessToken = await this.authTokenUtil.signAccessToken(user.id);
+
+			const session = await prisma.session.create({
+				data: {
+					user: {
+						connect: {
+							id: user.id,
+						},
+					},
+				},
+			});
+
+			// const refreshToken = await this.authTokenUtil.signRefreshToken(session.id);
+			const refreshToken = await this.authTokenUtil.signRefreshToken(session.id);
+			return Promise.resolve({
+				statusCode: HttpStatus.OK,
+				message: "login successful",
+				data: {
+					accessToken,
+					refreshToken,
+				},
 			});
 		} catch (err) {
 			if (

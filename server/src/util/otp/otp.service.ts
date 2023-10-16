@@ -29,6 +29,14 @@ export class OtpService {
 	public async generateOtp(userId: string, reason: OTPReason): Promise<Otp> {
 		const otp = Math.floor(100000 + Math.random() * 900000);
 
+		// delete previous otps
+		await prisma.otp.deleteMany({
+			where: {
+				userId,
+				reason,
+			},
+		});
+
 		// save otp to database
 		return await prisma.otp.create({
 			data: {
