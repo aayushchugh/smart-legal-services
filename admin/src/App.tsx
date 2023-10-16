@@ -1,7 +1,14 @@
-import React from "react";
+import { FC } from "react";
+import { Button } from "antd";
+import "./index.css";
 
-function App() {
-	return <div>This is admin</div>;
-}
+const App: FC = () => {
+	return (
+		<>
+			<Button>Login</Button>
+			<h1 className="text-red-500">Admin</h1>
+		</>
+	);
+};
 
 export default App;
