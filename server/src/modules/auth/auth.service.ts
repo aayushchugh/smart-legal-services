@@ -459,6 +459,4 @@ export class AuthService {
 			return Promise.reject(err);
 		}
 	}
-
-	// async postAdminVerifyServiceProvider(params: PostAdminVerifyServiceProviderParamsDTO) {}
 }

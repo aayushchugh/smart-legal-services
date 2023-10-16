@@ -95,11 +95,6 @@ export class PostSignupServiceProviderAttachmentsParamsDTO {
 	email: string;
 }
 
-export class PostAdminVerifyServiceProviderParamsDTO {
-	@IsNotEmpty({ message: "email is required" })
-	email: string;
-}
-
 export class PostSignupServiceProviderAttachmentsBodyDTO {
 	@IsNotEmpty({ message: "files are required" })
 	// NOTE: files will be in stringify json type and will contain title and type

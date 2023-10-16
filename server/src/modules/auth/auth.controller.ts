@@ -108,9 +108,4 @@ export class AuthController {
 	) {
 		return await this.authService.postLoginVerify(param, body);
 	}
-
-	// @Post("/admin/auth/verify-service-provider/:email")
-	// async postAdminVerifyServiceProvider(@Param() params: PostAdminVerifyServiceProviderParamsDTO) {
-	// 	return await this.authService.postAdminVerifyServiceProvider(params);
-	// }
 }
