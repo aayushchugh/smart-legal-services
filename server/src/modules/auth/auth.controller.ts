@@ -6,13 +6,11 @@ import {
 	Get,
 	HttpCode,
 	HttpStatus,
-	Ip,
 	MaxFileSizeValidator,
 	Param,
 	ParseFilePipe,
 	Post,
 	Query,
-	Req,
 	UnprocessableEntityException,
 	UploadedFiles,
 	UseInterceptors,
@@ -33,7 +31,6 @@ import {
 	PostLoginVerifyBodyDTO,
 } from "./auth.dto";
 import { AnyFilesInterceptor } from "@nestjs/platform-express";
-import { Request } from "express";
 
 @Controller("auth")
 export class AuthController {

@@ -6,7 +6,6 @@ import { AllExceptionsFilter } from "./filters/allExceptions.filter";
 import RequestLoggerMiddleware from "./middleware/requestLogger.middleware";
 import { FirebaseModule } from "./util/firebase/firebase.module";
 import { OtpModule } from "./util/otp/otp.module";
-import DeserializeUserMiddleware from "./modules/auth/middlewares/deserializeUser.middleware";
 
 @Module({
 	imports: [
