@@ -117,5 +117,5 @@ export class PostLoginVerifyBodyDTO {
 
 export class PostLoginVerifyParamsDTO {
 	@IsNotEmpty({ message: "email is required" })
-	email: string;
+	emailPhone: string;
 }

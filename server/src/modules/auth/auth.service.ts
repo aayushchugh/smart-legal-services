@@ -389,10 +389,19 @@ export class AuthService {
 	async postLoginVerify(params: PostLoginVerifyParamsDTO, body: PostLoginVerifyBodyDTO) {
 		try {
 			// find user
-			const user = await prisma.user.findUniqueOrThrow({
-				where: { email: params.email },
-				include: { otps: true },
-			});
+			let user: User;
+
+			if (params.emailPhone.includes("@")) {
+				await prisma.user.findUniqueOrThrow({
+					where: { email: params.emailPhone },
+					include: { otps: true },
+				});
+			} else {
+				await prisma.user.findUniqueOrThrow({
+					where: { phone: +params.emailPhone },
+					include: { otps: true },
+				});
+			}
 
 			// check if user is verified
 			if (!user.isVerified) {

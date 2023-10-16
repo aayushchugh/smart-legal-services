@@ -98,7 +98,7 @@ export class AuthController {
 		return await this.authService.postLogin(body);
 	}
 
-	@Post("/login/:email/verify")
+	@Post("/login/:emailPhone/verify")
 	async postLoginVerify(
 		@Param() param: PostLoginVerifyParamsDTO,
 		@Body() body: PostLoginVerifyBodyDTO,
