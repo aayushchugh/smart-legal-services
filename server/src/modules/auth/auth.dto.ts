@@ -58,9 +58,9 @@ export class PostSignupQueryDTO {
 	type: UserRole;
 }
 
-export class GetVerifyEmailQueryDTO {
-	@IsNotEmpty({ message: "v is required" })
-	v: number;
+export class GetVerifyEmailBodyDTO {
+	@IsNotEmpty({ message: "otp is required" })
+	otp: number;
 }
 
 export class GetVerifyEmailParamsDTO {
@@ -113,4 +113,14 @@ export class PostLoginBodyDTO {
 	@IsNotEmpty({ message: "password is required" })
 	@IsString({ message: "password should be a valid string" })
 	password: string;
+}
+
+export class PostLoginVerifyBodyDTO {
+	@IsNotEmpty({ message: "otp is required" })
+	otp: number;
+}
+
+export class PostLoginVerifyParamsDTO {
+	@IsNotEmpty({ message: "email is required" })
+	email: string;
 }

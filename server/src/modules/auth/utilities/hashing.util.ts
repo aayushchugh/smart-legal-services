@@ -2,7 +2,7 @@ import { Injectable } from "@nestjs/common";
 import { genSalt, hash, compare } from "bcrypt";
 
 @Injectable()
-export class HashingUtil {
+class AuthHashingUtil {
 	/**
 	 * Generate hash for the payload
 	 *
@@ -27,3 +27,5 @@ export class HashingUtil {
 		return await compare(payload, hashedPayload);
 	}
 }
+
+export default AuthHashingUtil;

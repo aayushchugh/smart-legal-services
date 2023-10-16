@@ -6,11 +6,13 @@ import {
 	Get,
 	HttpCode,
 	HttpStatus,
+	Ip,
 	MaxFileSizeValidator,
 	Param,
 	ParseFilePipe,
 	Post,
 	Query,
+	Req,
 	UnprocessableEntityException,
 	UploadedFiles,
 	UseInterceptors,
@@ -19,7 +21,7 @@ import { AuthService } from "./auth.service";
 import {
 	GetResendVerifyEmailQueryDTO,
 	GetVerifyEmailParamsDTO,
-	GetVerifyEmailQueryDTO,
+	GetVerifyEmailBodyDTO,
 	PostLoginBodyDTO,
 	PostSignupBodyDTO,
 	PostSignupQueryDTO,
@@ -27,8 +29,11 @@ import {
 	PostSignupServiceProviderAttachmentsParamsDTO,
 	PostSignupServiceProviderDetailsBodyDTO,
 	PostSignupServiceProviderDetailsParamsDTO,
+	PostLoginVerifyParamsDTO,
+	PostLoginVerifyBodyDTO,
 } from "./auth.dto";
 import { AnyFilesInterceptor } from "@nestjs/platform-express";
+import { Request } from "express";
 
 @Controller("auth")
 export class AuthController {
@@ -40,12 +45,12 @@ export class AuthController {
 		return await this.authService.postSignup(signupDto, query);
 	}
 
-	@Get("/signup/:email/verify")
+	@Post("/signup/:email/verify")
 	async getVerifyEmail(
 		@Param() params: GetVerifyEmailParamsDTO,
-		@Query() query: GetVerifyEmailQueryDTO,
+		@Body() body: GetVerifyEmailBodyDTO,
 	) {
-		return await this.authService.getVerifyEmail(params, query);
+		return await this.authService.getVerifyEmail(params, body);
 	}
 
 	@Get("/signup/verification-code/resend")
@@ -96,6 +101,13 @@ export class AuthController {
 		return await this.authService.postLogin(body);
 	}
 
+	@Post("/login/:email/verify")
+	async postLoginVerify(
+		@Param() param: PostLoginVerifyParamsDTO,
+		@Body() body: PostLoginVerifyBodyDTO,
+	) {
+		return await this.authService.postLoginVerify(param, body);
+	}
 	// @Post("/admin/auth/verify-service-provider/:email")
 	// async postAdminVerifyServiceProvider(@Param() params: PostAdminVerifyServiceProviderParamsDTO) {
 	// 	return await this.authService.postAdminVerifyServiceProvider(params);
