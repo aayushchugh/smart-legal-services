@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, ReactNode } from "react";
 import { Button, Form, Typography } from "antd";
 
 interface AuthLayoutProps {
@@ -18,9 +18,14 @@ interface AuthLayoutProps {
 	buttonText: string;
 
 	/**
+	 * Description of the form.
+	 */
+	description?: string;
+
+	/**
 	 * Form items to be displayed.
 	 */
-	children: JSX.Element;
+	children: ReactNode;
 }
 
 /**
@@ -28,7 +33,7 @@ interface AuthLayoutProps {
  * It has a image on left side with a form on the right side.
  * @constructor
  */
-const AuthLayout: FC<AuthLayoutProps> = ({ image, heading, buttonText, children }) => {
+const AuthLayout: FC<AuthLayoutProps> = ({ image, heading, description, buttonText, children }) => {
 	return (
 		<main className="flex items-center justify-center h-screen">
 			<div className="flex flex-col md:flex-row items-center justify-between w-[80%] md:shadow-2xl md:px-10 md:py-20">
@@ -40,6 +45,8 @@ const AuthLayout: FC<AuthLayoutProps> = ({ image, heading, buttonText, children 
 					<Form layout={"vertical"}>
 						<Form.Item>
 							<Typography.Title level={3}>{heading}</Typography.Title>
+
+							{description && <Typography.Paragraph>{description}</Typography.Paragraph>}
 						</Form.Item>
 
 						{children}
