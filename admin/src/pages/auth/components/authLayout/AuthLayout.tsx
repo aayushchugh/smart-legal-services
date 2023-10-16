@@ -1,5 +1,5 @@
 import { FC, ReactNode } from "react";
-import { Button, Form, Typography } from "antd";
+import { Button, Form, FormInstance, Typography } from "antd";
 
 interface AuthLayoutProps {
 	/**
@@ -26,6 +26,22 @@ interface AuthLayoutProps {
 	 * Form items to be displayed.
 	 */
 	children: ReactNode;
+
+	/**
+	 * Use form hook
+	 */
+	form?: FormInstance;
+
+	/**
+	 * Function to be called when form is submitted.
+	 * @param values Values of the form.
+	 */
+	onSubmit?: (values: any) => void;
+
+	/**
+	 * Whether the button is loading or not.
+	 */
+	isButtonLoading?: boolean;
 }
 
 /**
@@ -33,7 +49,16 @@ interface AuthLayoutProps {
  * It has a image on left side with a form on the right side.
  * @constructor
  */
-const AuthLayout: FC<AuthLayoutProps> = ({ image, heading, description, buttonText, children }) => {
+const AuthLayout: FC<AuthLayoutProps> = ({
+	image,
+	heading,
+	description,
+	buttonText,
+	form,
+	onSubmit,
+	isButtonLoading,
+	children,
+}) => {
 	return (
 		<main className="flex items-center justify-center h-screen">
 			<div className="flex flex-col md:flex-row items-center justify-between w-[80%] md:shadow-2xl md:px-10 md:py-20">
@@ -42,7 +67,7 @@ const AuthLayout: FC<AuthLayoutProps> = ({ image, heading, description, buttonTe
 				</div>
 
 				<div className="w-full text-center md:text-left md:w-1/2 md:ml-8 mt-10 md:mt-0">
-					<Form layout={"vertical"}>
+					<Form layout={"vertical"} form={form} onFinish={onSubmit}>
 						<Form.Item>
 							<Typography.Title level={3}>{heading}</Typography.Title>
 
@@ -52,7 +77,9 @@ const AuthLayout: FC<AuthLayoutProps> = ({ image, heading, description, buttonTe
 						{children}
 
 						<Form.Item>
-							<Button type={"primary"}>{buttonText}</Button>
+							<Button type={"primary"} onClick={() => form?.submit()} loading={isButtonLoading}>
+								{buttonText}
+							</Button>
 						</Form.Item>
 					</Form>
 				</div>
