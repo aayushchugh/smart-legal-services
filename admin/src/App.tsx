@@ -1,13 +1,17 @@
 import { FC } from "react";
-import { Button } from "antd";
 import "./index.css";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Login from "./pages/auth/login/Login.tsx";
 
 const App: FC = () => {
 	return (
-		<>
-			<Button>Login</Button>
-			<h1 className="text-red-500">Admin</h1>
-		</>
+		<div>
+			<BrowserRouter>
+				<Routes>
+					<Route path="/login" element={<Login />} />
+				</Routes>
+			</BrowserRouter>
+		</div>
 	);
 };
 
