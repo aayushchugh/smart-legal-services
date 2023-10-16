@@ -78,7 +78,7 @@ export class AuthService {
 			});
 		} catch (err) {
 			if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-				throw new ConflictException("Account with this email or username already exists");
+				throw new ConflictException("Account with this email or phone already exists");
 			}
 
 			return Promise.reject(err);
@@ -119,7 +119,7 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid email");
+				throw new NotFoundException("invalid email", "APP_INVALID_EMAIL");
 			}
 
 			return Promise.reject(err);
@@ -157,7 +157,7 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid email");
+				throw new NotFoundException("invalid email", "APP_INVALID_EMAIL");
 			}
 
 			return Promise.reject(err);
@@ -210,7 +210,7 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid email");
+				throw new NotFoundException("invalid email", "APP_INVALID_EMAIL");
 			}
 
 			return Promise.reject(err);
@@ -311,7 +311,7 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid email");
+				throw new NotFoundException("invalid email", "APP_INVALID_EMAIL");
 			}
 
 			return Promise.reject(err);
@@ -328,6 +328,10 @@ export class AuthService {
 					where: { email: body.emailPhone },
 				});
 			} else {
+				if (isNaN(+body.emailPhone)) {
+					throw new BadRequestException("invalid email or phone", "APP_INVALID_CREDS");
+				}
+
 				user = await prisma.user.findUniqueOrThrow({
 					where: { phone: +body.emailPhone },
 				});
@@ -335,7 +339,7 @@ export class AuthService {
 
 			// check if user is verified
 			if (!user.isVerified) {
-				throw new ForbiddenException("user is not verified", "APP_USER_NOT_VERIFIED");
+				throw new ForbiddenException("user is not verified", "APP_INVALID_CREDS");
 			}
 
 			// check if user is service provider and is verified
@@ -360,7 +364,7 @@ export class AuthService {
 			const isPasswordCorrect = await this.hashingUtility.compareHash(body.password, user.password);
 
 			if (!isPasswordCorrect) {
-				throw new UnauthorizedException("invalid password", "APP_INVALID_PASSWORD");
+				throw new UnauthorizedException("invalid password", "APP_INVALID_CREDS");
 			}
 
 			// generate otp for login
@@ -379,7 +383,7 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid email");
+				throw new NotFoundException("invalid email", "APP_INVALID_CREDS");
 			}
 
 			return Promise.reject(err);
@@ -462,7 +466,7 @@ export class AuthService {
 				err instanceof Prisma.PrismaClientKnownRequestError &&
 				(err.code === "P2023" || err.code === "P2025")
 			) {
-				throw new NotFoundException("invalid email");
+				throw new NotFoundException("invalid email", "APP_INVALID_EMAIL");
 			}
 
 			return Promise.reject(err);
