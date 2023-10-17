@@ -396,15 +396,19 @@ export class AuthService {
 			let user: User;
 
 			if (params.emailPhone.includes("@")) {
-				await prisma.user.findUniqueOrThrow({
+				user = await prisma.user.findUniqueOrThrow({
 					where: { email: params.emailPhone },
 					include: { otps: true },
 				});
 			} else {
-				await prisma.user.findUniqueOrThrow({
+				user = await prisma.user.findUniqueOrThrow({
 					where: { phone: +params.emailPhone },
 					include: { otps: true },
 				});
+			}
+
+			if (!user) {
+				throw new NotFoundException("user not found", "APP_USER_NOT_FOUND");
 			}
 
 			// check if user is verified
